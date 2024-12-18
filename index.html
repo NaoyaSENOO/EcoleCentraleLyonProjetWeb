@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<script src="leaflet.js"> // insertion bibliothèque Leaflet : http://leafletjs.com/ </script>
+
+<title>Hydrométrie des rivières bretonnes</title>
+<link rel="stylesheet" type="text/css" href="leaflet.css" /> 
+<link rel="stylesheet" type="text/css" href="style.css"/>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+
+
+<meta charset="utf-8">
+
+
+<body onload="load_data()">  <!-- Récupération des données avec le chargement de la page -->
+
+<h1>Hydrométrie des rivières bretonnes</h1>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Menu Déroulant avec Sous-menus</title>
+ 
+</head>
+<body>
+
+<nav>
+    <button onclick="EtatInit()" href="#"> Accueil</button>
+
+    <button id="durationButton" onclick="showDateSelection()" >Durée</button>
+        <div id="dateSelection" class="hidden">
+            <label for="startDate" >Date de début :</label>
+            <input type="date" id="startDate" name="startDate" >
+            <label for="endDate">Date de fin :</label>
+            <input type="date" id="endDate" name="endDate" >
+            <button id="dateButton" onclick="displayDates()">Choisir les dates</button>
+        </div>
+
+        <div class="dropdown">
+            <button onclick="toggleDropdown()" class="dropbtn"> Données</button>
+                <div id="myDropdown" class="dropdown-content">
+                    <div class="submenu-link">
+                        <button id="moyenne" onclick="displayType('moy')"  href="#link1">Moyenne </button>
+                    </div>
+                    <div class="submenu-link">
+                        <button id="min" onclick="displayType('min')" href="#link2">Valeur minimale</button>
+                    </div>
+                    <div class="submenu-link">
+                        <button id="max" onclick="displayType('max')" href="#link3">Valeur maximale</button>
+                    </div>
+                    <div class="submenu-link">
+                        <button id="tous" onclick="displayType('tous')" href="#link3">Tous</button>
+                    </div>
+                </div>
+        </div>
+   
+    <div class="dropdown">
+    <button onclick="toggleDropdown()" class="dropbtn">Département</button>
+        <div id="myDropdown" class="dropdown-content">
+            <div class="submenu-link">
+                <a onclick="ZoomDep([48.35,-4], 8.25)" id="département" href="#link1">Finistère </a>
+                <div class="submenu">
+                    <a onclick="ZoomDep([48.45,-4.3], 9.3)" href="#link1-1">Brest</a>
+                    <a onclick="ZoomDep([48.55,-3.9], 9.5)" href="#link1-2">Morlaix</a>
+                    <a onclick="ZoomDep([48.35,-4.1], 9)" href="#link1-3">Châteaulin</a>
+                    <a onclick="ZoomDep([48,-4], 9)" href="#link1-3">Quimper</a>
+                </div>
+            </div>
+            <div class="submenu-link">
+                <a onclick="ZoomDep([48.55,-2.85], 8.6)" href="#link2">Côtes d'Armor</a>
+                <div class="submenu">
+                    <a onclick="ZoomDep([48.6,-3.3], 9.3)" href="#link2-1">Lannion</a>
+                    <a href="#link2-2">Guigamp</a>
+                    <a href="#link2-3">Saint-Brieuc</a>
+                    <a href="#link2-3">Dinan</a>
+                </div>
+            </div>
+            <div class="submenu-link">
+                <a onclick="ZoomDep([47.76,-2.85], 8.6)" href="#link3">Morbihan</a>
+                <div class="submenu">
+                    <a href="#link3-1">Lorient</a>
+                    <a href="#link3-2">Pontivy</a>
+                    <a href="#link3-3">Vannes</a>
+                </div>
+            </div>
+            <div onclick="ZoomDep([48,-1.9], 8.4)" class="submenu-link">
+              <a href="#link3">Ille-et-Villaine </a>
+              <div class="submenu">
+                  <a href="#link3-1">Redon</a>
+                  <a href="#link3-2">Rennes</a>
+                  <a href="#link3-3">Saint-Malo</a>
+                  <a href="#link3-3">Fougères-Vitré</a>
+              </div>
+          </div>
+        </div>
+      </div>
+</nav>
+    
+
+
+<script>
+  function toggleDropdown() {
+      document.getElementById("myDropdown").classList.toggle("show");
+  }
+
+  window.onclick = function(event) {
+      if (!event.target.matches('.dropbtn')) {
+          var dropdowns = document.getElementsByClassName("dropdown-content");
+          for (var i = 0; i < dropdowns.length; i++) {
+              var openDropdown = dropdowns[i];
+              if (openDropdown.classList.contains('show')) {
+                  openDropdown.classList.remove('show');
+              }
+          }
+      }
+  }
+</script>
+
+<style>
+  .show {display: block;}
+</style>
+
+
+
+
+
+ <!-- <label><span>Région :</span><input id="region" name="Region"> 
+ <button id="bouton">Afficher la courbe</button>  </label>  -->
+ <div id="map"></div>  
+
+<div id="reponse">
+  <p align="center"></p>
+  <img width="70%" src="" />
+</div>
+<div>
+</div>
+</body>
+
+<script>
+
+//création des variables globales de date
+var startDateGlobal ='';
+var endDateGlobal ='';
+var typeGlobal='tous';
+// Creation d'une carte dans la balise div "map", et positionne la vue sur un point donné et un niveau de zoom
+var map = L.map('map').setView([48.2,-2.8], 7);
+// Ajout d'une couche de dalles OpenStreetMap
+L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+     attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+     }).addTo(map);
+
+
+	 
+function load_data () {
+    var xhr = new XMLHttpRequest();
+    xhr.onload = function() {   // fonction callback
+      // récupération des données renvoyées par le serveur
+	  var data = JSON.parse(this.responseText);
+      // boucle sur les enregistrements renvoyés
+      for ( n = 0; n < data.length; n++ ) {
+        // insertion d'un marqueur à la position, attachement d'une popup, capture de l'évènement "clic'
+	    L.marker([data[n].longitude,data[n].latitude]).addTo(map)
+          .bindPopup(data[n].nom)
+		  .addEventListener('click',OnMarkerClick)
+		  .idreg=data[n].nom;   // propriété personnalisée ajouté au marqueur
+	    }
+    };
+    xhr.open('GET','/station',true);
+    xhr.send();
+    
+    print(data[0].latitude, data[0].longitude)
+
+}
+
+function ZoomDep (C,z) {
+    map.setView(C,z);
+
+}
+
+function displayType(e) {
+    typeGlobal=e
+}
+
+function showDateSelection() {
+        document.getElementById("dateSelection").classList.remove("hidden");
+    }
+
+function convertDateFormat(dateString) {
+    var dateParts = dateString.split("-");
+    return dateParts[2] + "-" + dateParts[1] + "-" + dateParts[0];
+}
+
+
+function displayDates() {
+        var startDate = document.getElementById("startDate").value;
+        var endDate = document.getElementById("endDate").value;
+
+        var start = new Date(startDate);
+        var end = new Date(endDate);
+        var Datemin = new Date("2018-01-01");
+        var Datemax = new Date("2023-11-27");
+       
+
+        if (!startDate || !endDate) {
+            alert("Veuillez sélectionner les dates de début et de fin.");
+            return;
+        }
+        
+        if (start<Datemin || end>Datemax) {
+            alert("Nous avons seulement accès aux données d'hydrométrie entre le 1er janvier 2018 et le 27 novembre 2023, veuillez renseigner une autre date.");
+        }
+
+        var startDate1 = convertDateFormat(startDate);
+        var endDate1 = convertDateFormat(endDate);
+
+        startDateGlobal= startDate1;
+        endDateGlobal = endDate1;
+        alert("dates sélectionnées")
+    }
+
+function EtatInit(){
+
+    location.reload();
+}
+
+function OnMarkerClick (e) {
+    if (!startDateGlobal || !endDateGlobal) {
+                alert("Veuillez sélectionner les dates avant de choisir une station.");
+                return;
+    }
+
+    var xhr = new XMLHttpRequest();
+	var image =  document.querySelector('#reponse img'),
+        legende = document.querySelector('#reponse p');
+    
+	xhr.onload = function() {   // fonction callback
+      var data = JSON.parse(this.responseText)
+      image.src = data.img;
+      image.alt = data.title;
+      legende.innerHTML = data.title;
+      };
+    xhr.open('GET','/debit/'+e.target.idreg+'/'+startDateGlobal+'/'+endDateGlobal+'/'+typeGlobal,true);  // on récupère la courbe par un appel au serveur
+    xhr.send();
+}
+</script>
+
+
