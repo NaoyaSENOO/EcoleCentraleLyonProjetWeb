@@ -48,5 +48,5 @@
 以下は、本プロジェクトで生成される河川水位グラフの例です:
 
 
-![Sample Graph](sample-graph.png)
+![Sample Graph](Simple.png)
 
